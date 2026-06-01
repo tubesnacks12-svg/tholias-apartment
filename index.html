@@ -330,6 +330,7 @@ function defaultDB() {
   return {
     pwd: 'admin123',
     rate: 2.28,
+    rateHistory: [{rate:2.28, from:'2026-01-01'}],
     flats: [
       {no:'101',owner:'NARESH JI',sqft:4400,since:'2026-01-01',history:[]},
       {no:'201',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
@@ -383,20 +384,54 @@ let isAdmin = false;
 // ══════════════════════════════════════════
 //  CALCULATIONS
 // ══════════════════════════════════════════
+
+// Ensure rateHistory exists (for older saved data)
+function getRateHistory() {
+  if (!db.rateHistory || !db.rateHistory.length) {
+    db.rateHistory = [{rate: db.rate, from: '2026-01-01'}];
+  }
+  return db.rateHistory;
+}
+
+// Get the rate that was active for a given YYYY-MM month string
+function rateForMonth(ym) {
+  const hist = getRateHistory();
+  // Sort descending by from date, pick first one that started <= this month
+  const sorted = [...hist].sort((a,b) => b.from.localeCompare(a.from));
+  for (const h of sorted) {
+    if (h.from.slice(0,7) <= ym) return h.rate;
+  }
+  return hist[0].rate;
+}
+
+// Current rate = latest entry in rateHistory
+function currentRate() {
+  const hist = getRateHistory();
+  return [...hist].sort((a,b) => b.from.localeCompare(a.from))[0].rate;
+}
+
+// Monthly charge at current rate (for display only)
 function monthly(flat) {
   if (!flat.sqft || flat.sqft === 0) return 0;
-  return Math.round(flat.sqft * db.rate);
+  return Math.round(flat.sqft * currentRate());
 }
+
+// Accrue maintenance month by month using the correct rate for each month
 function accrued(flat) {
   if (!flat.sqft || flat.sqft === 0) return 0;
-  const m = monthly(flat);
   const since = new Date(Math.max(new Date(flat.since||'2026-01-01'), new Date('2026-01-01')));
   const start = new Date(since.getFullYear(), since.getMonth(), 1);
   const now = new Date();
   const end = new Date(now.getFullYear(), now.getMonth(), 1);
-  let months = 0, d = new Date(start);
-  while (d <= end) { months++; d.setMonth(d.getMonth()+1); }
-  return m * months;
+  let total = 0;
+  let d = new Date(start);
+  while (d <= end) {
+    const ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const rate = rateForMonth(ym);
+    total += Math.round(flat.sqft * rate);
+    d.setMonth(d.getMonth()+1);
+  }
+  return total;
 }
 function paid(flatNo, fromDate) {
   return db.payments.filter(p => p.flat === flatNo && (!fromDate || p.date >= fromDate)).reduce((s,p)=>s+p.amount,0);
@@ -787,7 +822,8 @@ function buildWorkbook(filterMonth) {
   const now = new Date();
 
   // ── Sheet 1: Balance Summary ──
-  const s1 = [['THOLIA\'S APARTMENT — Balance Summary'],['Generated on: '+now.toLocaleDateString('en-IN')],[''],
+  const s1 = [['THOLIA\'S APARTMENT — Balance Summary'],['Generated on: '+now.toLocaleDateString('en-IN'),
+    'Current Rate: ₹'+currentRate()+'/sqft/month'],[''],
     ['Flat No','Owner','Area (SqFt)','Monthly Charge','Owner Since','Total Accrued','Total Paid','Balance','Status']];
   db.flats.forEach(f => {
     const m=monthly(f), a=accrued(f), p=paid(f.no,f.since), b=balance(f);
@@ -824,14 +860,19 @@ function buildWorkbook(filterMonth) {
   XLSX.utils.book_append_sheet(wb, ws3, 'Expenses');
 
   // ── Sheet 4: Directory ──
-  const s4 = [['THOLIA\'S APARTMENT — Flat Owner Directory'],['Rate: ₹'+db.rate+' per sqft/month'],[''],
-    ['Flat No','Owner','Area (SqFt)','Monthly Charge','Owner Since','Previous Owners']];
+  const cr = currentRate();
+  const rateHist = [...getRateHistory()].sort((a,b)=>a.from.localeCompare(b.from));
+  const s4 = [['THOLIA\'S APARTMENT — Flat Owner Directory'],
+    ['Current Rate: ₹'+cr+' per sqft/month'],[''],
+    ['Flat No','Owner','Area (SqFt)','Monthly Charge (Current Rate)','Owner Since','Previous Owners']];
   db.flats.forEach(f => {
     const prev = (f.history||[]).map(h=>h.owner+' ('+h.since+' to '+h.until+')').join('; ');
-    s4.push([f.no, f.owner, f.sqft||0, monthly(f), f.since, prev||'First Owner']);
+    s4.push([f.no, f.owner, f.sqft||0, Math.round((f.sqft||0)*cr), f.since, prev||'First Owner']);
   });
+  s4.push([''],['RATE HISTORY'],['Effective From','Rate (₹/sqft/month)','Monthly for 2200sqft']);
+  rateHist.forEach(h => { s4.push([h.from, h.rate, Math.round(2200*h.rate)]); });
   const ws4 = XLSX.utils.aoa_to_sheet(s4);
-  ws4['!cols']=[{wch:10},{wch:18},{wch:12},{wch:15},{wch:14},{wch:40}];
+  ws4['!cols']=[{wch:10},{wch:18},{wch:12},{wch:24},{wch:14},{wch:40}];
   XLSX.utils.book_append_sheet(wb, ws4, 'Owner Directory');
 
   return wb;
@@ -856,18 +897,50 @@ function downloadMonthExcel() {
 //  SETTINGS
 // ══════════════════════════════════════════
 function renderSettings() {
+  const cr = currentRate();
+  const hist = [...getRateHistory()].sort((a,b)=>b.from.localeCompare(a.from));
+
+  // Next month string (new rate applies from 1st of next month)
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth()+1, 1);
+  const nextMonthStr = nextMonth.toLocaleString('en-IN',{month:'long',year:'numeric'});
+  const nextMonthVal = nextMonth.getFullYear()+'-'+String(nextMonth.getMonth()+1).padStart(2,'0')+'-01';
+
+  // Rate history table rows
+  const histRows = hist.map((h,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text)">₹${h.rate} per sqft/month</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Effective from ${fmtD(h.from)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${i===0?`<span style="background:var(--green-light);color:var(--green);font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px">CURRENT</span>`:''}
+        ${isAdmin && hist.length>1 && i===0?`<button class="del-btn" onclick="deleteLatestRate()" title="Remove this rate change">✕</button>`:''}
+      </div>
+    </div>`).join('');
+
   document.getElementById('rateCard').innerHTML = `
+    ${isAdmin ? `
     <div class="fg">
-      <label>Rate (₹ per Sq Ft per Month)</label>
-      <input type="number" id="rateIn" step="0.01" value="${db.rate}" ${!isAdmin?'disabled':''} inputmode="decimal" />
+      <label>New Maintenance Rate (₹ per Sq Ft per Month)</label>
+      <input type="number" id="rateIn" step="0.01" placeholder="e.g. 3.00" inputmode="decimal" />
     </div>
-    <p style="font-size:12px;color:var(--text3);line-height:1.7;margin-bottom:14px">
-      Monthly charge = Sq Ft × ₹${db.rate}<br>
-      Example: 2200 sqft → <strong style="color:var(--text)">₹${I(Math.round(2200*db.rate))}/month</strong><br>
+    <div class="alert alert-info" style="margin-bottom:14px">
+      📅 New rate will apply from <strong>${nextMonthStr}</strong> (1st of next month).<br>
+      All previous months stay at their original rates.
+    </div>
+    <button class="btn btn-navy" onclick="saveRate('${nextMonthVal}')">Apply New Rate from ${nextMonthStr}</button>
+    <div style="height:14px"></div>` :
+    `<div class="alert alert-warn">🔒 Login as Admin to change rate</div>`}
+
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:10px">Rate History</div>
+    ${histRows}
+    <div style="margin-top:12px;font-size:12px;color:var(--text3);line-height:1.7">
+      Current rate: <strong style="color:var(--text)">₹${cr} per sqft</strong><br>
+      Example: 2200 sqft → <strong style="color:var(--text)">₹${I(Math.round(2200*cr))}/month</strong><br>
       Accrual starts from <strong style="color:var(--text)">1st January 2026</strong>
-    </p>
-    ${isAdmin?`<button class="btn btn-navy" onclick="saveRate()">Update Rate</button>`:
-    `<div class="alert alert-warn">🔒 Login as Admin to change rate</div>`}`;
+    </div>`;
+
   const psh = document.getElementById('pwdSH');
   psh.style.display = isAdmin ? '' : 'none';
   document.getElementById('pwdCard').innerHTML = isAdmin ? `
@@ -875,11 +948,32 @@ function renderSettings() {
     <div class="fg"><label>Confirm Password</label><input type="password" id="cp" placeholder="Repeat new password" /></div>
     <button class="btn btn-navy" onclick="changePwd()">Change Password</button>` : '';
 }
-function saveRate() {
-  const r=parseFloat(document.getElementById('rateIn').value);
-  if (!r||r<=0) { alert('Enter valid rate'); return; }
-  db.rate=r; save(); alert('✅ Rate updated to ₹'+r+' per sqft/month');
+
+function saveRate(effectiveFrom) {
+  const r = parseFloat(document.getElementById('rateIn').value);
+  if (!r||r<=0) { alert('Enter a valid rate'); return; }
+  const cr = currentRate();
+  if (r === cr) { alert('New rate is same as current rate (₹'+cr+'). No change made.'); return; }
+  if (!db.rateHistory) db.rateHistory = [];
+  // Remove any existing entry for the same month (avoid duplicates)
+  db.rateHistory = db.rateHistory.filter(h => h.from !== effectiveFrom);
+  db.rateHistory.push({rate: r, from: effectiveFrom});
+  db.rate = r; // keep in sync for legacy
+  save();
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth()+1, 1);
+  const nextMonthStr = nextMonth.toLocaleString('en-IN',{month:'long',year:'numeric'});
+  alert(`✅ Rate updated!\n₹${r} per sqft/month\nEffective from 1st ${nextMonthStr}\n\nOld months remain at ₹${cr}`);
   renderSettings(); renderDash();
+}
+
+function deleteLatestRate() {
+  if (!confirm('Remove the latest rate change? This will revert to the previous rate.')) return;
+  const hist = [...getRateHistory()].sort((a,b)=>b.from.localeCompare(a.from));
+  if (hist.length <= 1) { alert('Cannot remove the only rate entry.'); return; }
+  db.rateHistory = db.rateHistory.filter(h => h.from !== hist[0].from);
+  db.rate = currentRate();
+  save(); renderSettings(); renderDash();
 }
 function changePwd() {
   const np=document.getElementById('np').value, cp=document.getElementById('cp').value;
