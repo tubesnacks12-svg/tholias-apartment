@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tholia's Apartment</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --navy: #0f1f3d;
+  --navy2: #162847;
+  --gold: #c9a84c;
+  --gold-light: #f5edd6;
+  --gold-mid: #e8c97a;
+  --blue: #1e4db7;
+  --blue-light: #e8eeff;
+  --blue-mid: #3b6fd4;
+  --green: #0e7c5a;
+  --green-light: #e0f5ed;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --warn: #a05c00;
+  --warn-light: #fff4e0;
+  --bg: #f2f4f8;
+  --card: #ffffff;
+  --text: #0f1f3d;
+  --text2: #4a5568;
+  --text3: #8a95a5;
+  --border: rgba(15,31,61,0.09);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 2px 12px rgba(15,31,61,0.08);
+  --shadow-md: 0 4px 20px rgba(15,31,61,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--navy);color:white;padding:0 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,0.25)}
+.topbar-inner{display:flex;justify-content:space-between;align-items:center;padding:13px 0 11px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;background:var(--gold);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.brand-name{font-size:16px;font-weight:800;letter-spacing:-0.3px;line-height:1.1}
+.brand-sub{font-size:10px;color:rgba(255,255,255,0.55);font-weight:500;letter-spacing:0.5px;text-transform:uppercase}
+.admin-pill{background:rgba(201,168,76,0.18);border:1.5px solid rgba(201,168,76,0.45);color:var(--gold-mid);font-size:11px;font-weight:700;padding:6px 13px;border-radius:20px;cursor:pointer;letter-spacing:0.3px;white-space:nowrap}
+.admin-pill.active{background:rgba(201,168,76,0.28);border-color:var(--gold)}
+
+/* ── TABS ── */
+.tabbar{background:var(--navy2);display:flex;overflow-x:auto;scrollbar-width:none;position:sticky;top:63px;z-index:99;border-bottom:1px solid rgba(255,255,255,0.06)}
+.tabbar::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:11px 17px;font-size:12px;font-weight:700;color:rgba(255,255,255,0.45);border-bottom:2.5px solid transparent;cursor:pointer;white-space:nowrap;background:none;border-left:none;border-right:none;border-top:none;letter-spacing:0.3px;text-transform:uppercase}
+.tab.active{color:var(--gold-mid);border-bottom-color:var(--gold)}
+
+/* ── PAGES ── */
+.page{display:none;padding:16px}
+.page.active{display:block}
+
+/* ── SECTION HEADING ── */
+.sh{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:18px 0 8px 2px}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.stat{background:var(--card);border-radius:var(--radius);padding:14px 13px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat.blue::before{background:var(--blue)}
+.stat.red::before{background:var(--red)}
+.stat.green::before{background:var(--green)}
+.stat.gold::before{background:var(--gold)}
+.stat-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.stat-val{font-size:20px;font-weight:900;color:var(--text);line-height:1;letter-spacing:-0.5px}
+.stat-val.blue{color:var(--blue)}
+.stat-val.red{color:var(--red)}
+.stat-val.green{color:var(--green)}
+.stat-val.gold{color:var(--warn)}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;border:1px solid var(--border)}
+.card-hd{padding:13px 16px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#fafbfd}
+.card-hd h2{font-size:13px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:0.4px}
+.card-bd{padding:14px 16px}
+
+/* ── FLAT ITEMS ── */
+.flat-row{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--border);gap:8px}
+.flat-row:last-child{border-bottom:none}
+.flat-row:active{background:#f8f9ff}
+.f-left{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.f-chip{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0;letter-spacing:-0.5px}
+.f-chip.flat{background:var(--blue-light);color:var(--blue);border:1.5px solid rgba(30,77,183,0.15)}
+.f-chip.office{background:var(--gold-light);color:var(--warn);border:1.5px solid rgba(201,168,76,0.25)}
+.f-num{font-size:13px;font-weight:900;color:var(--blue);letter-spacing:-0.3px}
+.f-owner{font-size:14px;font-weight:800;color:var(--text);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.f-meta{font-size:11px;color:var(--text3);font-weight:500;margin-top:2px}
+.f-right{text-align:right;flex-shrink:0}
+.f-bal{font-size:15px;font-weight:900;line-height:1;letter-spacing:-0.5px}
+.f-bal.due{color:var(--red)}
+.f-bal.adv{color:var(--green)}
+.f-bal-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;text-align:right}
+.f-bal-tag.due{color:var(--red)}
+.f-bal-tag.adv{color:var(--green)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:460px}
+th{background:#f2f4f8;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);padding:9px 11px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 11px;border-bottom:1px solid rgba(15,31,61,0.04);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9faff}
+.td-flat{font-weight:900;color:var(--blue);font-size:13px}
+.td-owner{font-weight:800;color:var(--text)}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:0.4px;white-space:nowrap}
+.b-cash{background:var(--green-light);color:var(--green)}
+.b-bank{background:var(--blue-light);color:var(--blue)}
+.b-exp{background:#f3f0ff;color:#5b3fd4}
+.amt-in{color:var(--green);font-weight:800}
+.amt-out{color:var(--red);font-weight:800}
+.del-btn{background:none;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px 7px;border-radius:6px;opacity:0.7}
+.del-btn:hover{opacity:1;background:var(--red-light)}
+
+/* ── FORMS ── */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:10px;font-weight:800;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+input,select,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;background:white;color:var(--text);-webkit-appearance:none;appearance:none;font-family:inherit;outline:none;transition:border-color 0.15s,box-shadow 0.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,77,183,0.1)}
+input:disabled{background:#f5f6f8;color:var(--text3)}
+.btn{width:100%;padding:13px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;transition:all 0.15s;letter-spacing:0.2px}
+.btn-navy{background:var(--navy);color:white}
+.btn-navy:active{background:var(--navy2);transform:scale(0.98)}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-gold:active{transform:scale(0.98)}
+.btn-red{background:var(--red);color:white}
+.btn-ghost{background:#f2f4f8;color:var(--text2);border:1px solid var(--border)}
+.radio-row{display:flex;gap:9px}
+.r-btn{flex:1;padding:10px 6px;border:1.5px solid var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text3);transition:all 0.15s;background:white}
+.r-btn.on{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+
+/* ── ALERTS ── */
+.alert{padding:11px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.alert-warn{background:var(--warn-light);color:var(--warn);border:1px solid rgba(160,92,0,0.15)}
+.alert-ok{background:var(--green-light);color:var(--green);border:1px solid rgba(14,124,90,0.15)}
+.alert-info{background:var(--blue-light);color:var(--blue);border:1px solid rgba(30,77,183,0.15)}
+
+/* ── MODALS ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,20,40,0.6);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:white;border-radius:22px 22px 0 0;padding:20px 16px 36px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.drag{width:38px;height:4px;background:#dde0e8;border-radius:2px;margin:0 auto 18px}
+.modal h2{font-size:17px;font-weight:900;margin-bottom:4px;color:var(--text)}
+.modal .subtitle{font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.5}
+
+/* ── OWNER HISTORY ── */
+.hist-item{border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;border-left:3px solid var(--text3)}
+.hist-item.cleared{border-left-color:var(--green);background:var(--green-light)}
+.hist-item.pending{border-left-color:var(--red);background:var(--red-light)}
+.hist-item.current{border-left-color:var(--blue);background:var(--blue-light)}
+.hi-name{font-size:15px;font-weight:900;color:var(--text)}
+.hi-dates{font-size:11px;color:var(--text3);margin:3px 0 6px;font-weight:500}
+.hi-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.hi-lbl{color:var(--text3);font-weight:500}
+.hi-val{font-weight:800}
+
+/* ── DOWNLOAD BTN ── */
+.dl-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:white;border:none;border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:800;cursor:pointer;width:100%;margin-bottom:10px;letter-spacing:0.2px}
+.dl-btn:active{transform:scale(0.98);background:var(--navy2)}
+.dl-icon{font-size:18px}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+.edit-btn{background:var(--blue-light);border:none;color:var(--blue);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px;font-weight:800;letter-spacing:0.2px}
+.xfer-btn{background:var(--warn-light);border:none;color:var(--warn);font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px;font-weight:800;letter-spacing:0.2px}
+.hist-btn{background:#f0f0ff;border:none;color:#5b3fd4;font-size:11px;cursor:pointer;padding:6px 11px;border-radius:7px;font-weight:800;letter-spacing:0.2px}
+.btn-row{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+
+/* ── ERROR ── */
+.err{color:var(--red);font-size:12px;font-weight:700;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ════════════ LOGIN ════════════ -->
+<div id="loginOverlay" class="overlay open">
+  <div class="modal">
+    <div class="drag"></div>
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="width:64px;height:64px;background:var(--navy);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px">🏢</div>
+      <div style="font-size:20px;font-weight:900;color:var(--navy);letter-spacing:-0.5px">THOLIA'S APARTMENT</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Society Management</div>
+    </div>
+    <div class="fg"><label>Admin Password</label><input type="password" id="loginPwd" placeholder="Enter password to manage" /></div>
+    <button class="btn btn-navy" onclick="doLogin()">Login as Admin</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="closeLogin()">View Only — No Login</button>
+    <p id="loginErr" class="err"></p>
+  </div>
+</div>
+
+<!-- ════════════ EDIT FLAT ════════════ -->
+<div id="editFlatOverlay" class="overlay">
+  <div class="modal">
+    <div class="drag"></div>
+    <h2>Edit Flat Details</h2>
+    <p class="subtitle">Update owner name or area for this flat</p>
+    <input type="hidden" id="ef_no" />
+    <div class="fg"><label>Owner Name</label><input type="text" id="ef_owner" placeholder="Owner full name" /></div>
+    <div class="fg"><label>Area (Sq Ft)</label><input type="number" id="ef_sqft" placeholder="e.g. 2200" inputmode="numeric" /></div>
+    <button class="btn btn-navy" onclick="saveEditFlat()">Save Changes</button>
+    <button class="btn btn-ghost" style="margin-top:9px" onclick="closeOverlay('editFlatOverlay')">Cancel</button>
+  </div>
+</div>
+
+<!-- ════════════ TRANSFER ════════════ -->
+<div id="xferOverlay" class="overlay">
+  <div class="modal">
+    <div class="drag"></div>
+    <h2>Transfer Ownership</h2>
+    <p class="subtitle">Old owner's dues will be locked. New owner's account starts fresh from the date entered.</p>
+    <input type="hidden" id="xf_no" />
+    <div id="xf_oldInfo" style="background:#f2f4f8;border-radius:var(--radius-sm);padding:13px;margin-bottom:16px;border:1px solid var(--border)"></div>
+    <div class="fg"><label>New Owner Name</label><input type="text" id="xf_newOwner" placeholder="Full name of new owner" /></div>
+    <div class="fg"><label>Transfer / Joining Date</label><input type="date" id="xf_date" /></div>
+    <div class="fg"><label>Old Owner Dues Status</label>
+      <div class="radio-row">
+        <div class="r-btn on" id="xf_cleared" onclick="setSettle('cleared')">✅ Cleared</div>
+        <div class="r-btn" id="xf_pending" onclick="setSettle('pending')">⏳ Pending</div>
+      </div>
+    </div>
+    <button class="btn btn-navy" onclick="confirmXfer()">Confirm Transfer</button>
+    <button class="btn btn-ghost" style="margin-top:9px" onclick="closeOverlay('xferOverlay')">Cancel</button>
+  </div>
+</div>
+
+<!-- ════════════ HISTORY ════════════ -->
+<div id="histOverlay" class="overlay">
+  <div class="modal">
+    <div class="drag"></div>
+    <h2 id="histTitle">Ownership History</h2>
+    <p class="subtitle" id="histSub"></p>
+    <div id="histContent"></div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="closeOverlay('histOverlay')">Close</button>
+  </div>
+</div>
+
+<!-- ════════════ APP SHELL ════════════ -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">🏢</div>
+      <div>
+        <div class="brand-name">THOLIA'S APARTMENT</div>
+        <div class="brand-sub">Society Management</div>
+      </div>
+    </div>
+    <button class="admin-pill" id="adminPill" onclick="toggleAdmin()">🔓 Login</button>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab active" onclick="showTab('dash',this)">Dashboard</button>
+  <button class="tab" onclick="showTab('pay',this)">Payments</button>
+  <button class="tab" onclick="showTab('exp',this)">Expenses</button>
+  <button class="tab" onclick="showTab('flats',this)">Flats</button>
+  <button class="tab" onclick="showTab('report',this)">Report</button>
+  <button class="tab" onclick="showTab('settings',this)">Settings</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dash" class="page active">
+  <div class="stats-grid" id="statsGrid"></div>
+  <p class="sh">Flat-wise Balance Overview</p>
+  <div class="card"><div id="dashFlatList"></div></div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="tab-pay" class="page">
+  <div id="payForm"></div>
+  <p class="sh">Payment History</p>
+  <div class="card"><div class="tbl-wrap"><table>
+    <thead><tr><th>Date</th><th>Flat</th><th>Owner</th><th>Amount</th><th>Mode</th><th>Remark</th><th></th></tr></thead>
+    <tbody id="payTbody"></tbody>
+  </table></div></div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- EXPENSES -->
+<div id="tab-exp" class="page">
+  <div id="expForm"></div>
+  <p class="sh">Expense History</p>
+  <div class="card"><div class="tbl-wrap"><table>
+    <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+    <tbody id="expTbody"></tbody>
+  </table></div></div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- FLATS -->
+<div id="tab-flats" class="page">
+  <div id="flatNote"></div>
+  <p class="sh">Flat Owner Directory</p>
+  <div class="card" id="flatsCard"></div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- REPORT -->
+<div id="tab-report" class="page">
+  <div id="reportSection"></div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="tab-settings" class="page">
+  <p class="sh">Maintenance Rate</p>
+  <div class="card card-bd" id="rateCard"></div>
+  <p class="sh" id="pwdSH" style="display:none">Change Admin Password</p>
+  <div class="card card-bd" id="pwdCard"></div>
+  <div style="height:24px"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
+const SK = 'tholias_v4';
+function loadDB() {
+  try { const r = localStorage.getItem(SK); if (r) return JSON.parse(r); } catch(e) {}
+  return defaultDB();
+}
+function save() { localStorage.setItem(SK, JSON.stringify(db)); }
+
+function defaultDB() {
+  return {
+    pwd: 'admin123',
+    rate: 2.28,
+    flats: [
+      {no:'101',owner:'NARESH JI',sqft:4400,since:'2026-01-01',history:[]},
+      {no:'201',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'202',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'301',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'302',owner:'KULDEEP JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'401',owner:'ASHEESH JI',sqft:2500,since:'2026-01-01',history:[]},
+      {no:'402',owner:'PRIYA JI',sqft:1900,since:'2026-01-01',history:[]},
+      {no:'501',owner:'TUSHAR JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'502',owner:'HITESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'601',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'602',owner:'NARESH JI',sqft:2200,since:'2026-01-01',history:[]},
+      {no:'OFFICE',owner:'TBD',sqft:0,since:'2026-01-01',history:[],isOffice:true}
+    ],
+    payments: [
+      {id:1,date:'2026-01-09',flat:'401',owner:'ASHEESH JI',amount:17000,mode:'cash',remark:''},
+      {id:2,date:'2026-01-12',flat:'401',owner:'ASHEESH JI',amount:8000,mode:'cash',remark:''},
+      {id:3,date:'2026-01-26',flat:'302',owner:'KULDEEP JI',amount:30000,mode:'cash',remark:''},
+      {id:4,date:'2026-02-09',flat:'601',owner:'NARESH JI',amount:3000,mode:'cash',remark:''},
+      {id:5,date:'2026-02-08',flat:'402',owner:'PRIYA JI',amount:25000,mode:'bank',remark:'BAL 5000 NAMAN'},
+      {id:6,date:'2026-03-09',flat:'601',owner:'NARESH JI',amount:27000,mode:'cash',remark:''},
+      {id:7,date:'2026-03-09',flat:'501',owner:'TUSHAR JI',amount:30000,mode:'cash',remark:''},
+      {id:8,date:'2026-04-06',flat:'602',owner:'NARESH JI',amount:30000,mode:'cash',remark:''},
+      {id:9,date:'2026-04-06',flat:'502',owner:'HITESH JI',amount:15000,mode:'cash',remark:'BAL 15000 NAMAN'},
+      {id:10,date:'2026-05-16',flat:'101',owner:'NARESH JI',amount:30000,mode:'cash',remark:''}
+    ],
+    expenses: [
+      {id:1,date:'2026-01-09',category:'GUARD',amount:17000,note:''},
+      {id:2,date:'2026-01-12',category:'CLEANING',amount:8000,note:''},
+      {id:3,date:'2026-01-12',category:'TREE CUTTING',amount:100,note:''},
+      {id:4,date:'2026-02-03',category:'CLEANING',amount:8000,note:''},
+      {id:5,date:'2026-02-08',category:'GUARD',amount:17000,note:''},
+      {id:6,date:'2026-02-09',category:'AIRTEL',amount:3000,note:''},
+      {id:7,date:'2026-03-02',category:'CLEANING',amount:8000,note:''},
+      {id:8,date:'2026-03-02',category:'JHADU',amount:120,note:''},
+      {id:9,date:'2026-03-09',category:'GUARD',amount:17000,note:''},
+      {id:10,date:'2026-04-01',category:'CLEANING',amount:8000,note:''},
+      {id:11,date:'2026-04-07',category:'GUARD',amount:20290,note:''},
+      {id:12,date:'2026-05-02',category:'CLEANING',amount:8000,note:''},
+      {id:13,date:'2026-05-08',category:'GUARD',amount:34000,note:''},
+      {id:14,date:'2026-05-30',category:'JHADU',amount:120,note:''}
+    ],
+    nextPay: 11,
+    nextExp: 15
+  };
+}
+
+let db = loadDB();
+let isAdmin = false;
+
+// ══════════════════════════════════════════
+//  CALCULATIONS
+// ══════════════════════════════════════════
+function monthly(flat) {
+  if (!flat.sqft || flat.sqft === 0) return 0;
+  return Math.round(flat.sqft * db.rate);
+}
+function accrued(flat) {
+  if (!flat.sqft || flat.sqft === 0) return 0;
+  const m = monthly(flat);
+  const since = new Date(Math.max(new Date(flat.since||'2026-01-01'), new Date('2026-01-01')));
+  const start = new Date(since.getFullYear(), since.getMonth(), 1);
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  let months = 0, d = new Date(start);
+  while (d <= end) { months++; d.setMonth(d.getMonth()+1); }
+  return m * months;
+}
+function paid(flatNo, fromDate) {
+  return db.payments.filter(p => p.flat === flatNo && (!fromDate || p.date >= fromDate)).reduce((s,p)=>s+p.amount,0);
+}
+function balance(flat) {
+  return accrued(flat) - paid(flat.no, flat.since);
+}
+
+// ══════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════
+function doLogin() {
+  if (document.getElementById('loginPwd').value === db.pwd) {
+    isAdmin = true; closeLogin(); updateAdminUI();
+  } else {
+    document.getElementById('loginErr').textContent = '❌ Wrong password. Please try again.';
+    document.getElementById('loginPwd').value = '';
+  }
+}
+function closeLogin() { document.getElementById('loginOverlay').classList.remove('open'); }
+function toggleAdmin() {
+  if (isAdmin) { if (confirm('Logout from admin?')) { isAdmin = false; updateAdminUI(); } }
+  else { document.getElementById('loginPwd').value=''; document.getElementById('loginErr').textContent=''; document.getElementById('loginOverlay').classList.add('open'); }
+}
+function updateAdminUI() {
+  const p = document.getElementById('adminPill');
+  p.textContent = isAdmin ? '🔐 Admin' : '🔓 Login';
+  p.classList.toggle('active', isAdmin);
+  renderTab(activeTab());
+}
+document.addEventListener('keydown', e => { if (e.key==='Enter' && document.getElementById('loginOverlay').classList.contains('open')) doLogin(); });
+
+// ══════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════
+function showTab(n, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  btn.classList.add('active');
+  renderTab(n);
+}
+function activeTab() { const p = document.querySelector('.page.active'); return p ? p.id.replace('tab-','') : 'dash'; }
+function renderTab(n) {
+  if(n==='dash') renderDash();
+  else if(n==='pay') renderPay();
+  else if(n==='exp') renderExp();
+  else if(n==='flats') renderFlats();
+  else if(n==='report') renderReport();
+  else if(n==='settings') renderSettings();
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+function renderDash() {
+  const totPaid = db.payments.reduce((s,p)=>s+p.amount,0);
+  const totExp = db.expenses.reduce((s,e)=>s+e.amount,0);
+  const surplus = totPaid - totExp;
+  const totDue = db.flats.reduce((s,f)=>{ const b=balance(f); return s+(b>0?b:0); },0);
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat blue"><div class="stat-label">Total Collected</div><div class="stat-val blue">₹${I(totPaid)}</div></div>
+    <div class="stat red"><div class="stat-label">Total Expenses</div><div class="stat-val red">₹${I(totExp)}</div></div>
+    <div class="stat ${surplus>=0?'green':'red'}"><div class="stat-label">Fund ${surplus>=0?'Surplus':'Deficit'}</div><div class="stat-val ${surplus>=0?'green':'red'}">₹${I(Math.abs(surplus))}</div></div>
+    <div class="stat gold"><div class="stat-label">Dues Pending</div><div class="stat-val gold">₹${I(totDue)}</div></div>`;
+  let h = '';
+  db.flats.forEach(f => {
+    const b = balance(f);
+    const m = monthly(f);
+    const chip = f.no === 'OFFICE' ? 'OFF' : f.no;
+    h += `<div class="flat-row">
+      <div class="f-left">
+        <div class="f-chip ${f.isOffice?'office':'flat'}">${chip}</div>
+        <div style="min-width:0">
+          <div class="f-num">Flat ${f.no}</div>
+          <div class="f-owner">${f.owner}</div>
+          <div class="f-meta">${f.sqft ? I(f.sqft)+' sqft · ₹'+I(m)+'/mo' : 'Area not set'}</div>
+        </div>
+      </div>
+      <div class="f-right">
+        <div class="f-bal ${b>0?'due':'adv'}">${b>0?'−':'+'} ₹${I(Math.abs(b))}</div>
+        <div class="f-bal-tag ${b>0?'due':'adv'}">${b>0?'Due':'Advance'}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('dashFlatList').innerHTML = h;
+}
+
+// ══════════════════════════════════════════
+//  PAYMENTS
+// ══════════════════════════════════════════
+function renderPay() {
+  const c = document.getElementById('payForm');
+  if (isAdmin) {
+    c.innerHTML = `<div class="card">
+      <div class="card-hd"><h2>Add Payment Received</h2></div>
+      <div class="card-bd">
+        <div class="fg"><label>Date</label><input type="date" id="pDate" value="${td()}" /></div>
+        <div class="fg"><label>Select Flat</label><select id="pFlat">${db.flats.map(f=>`<option value="${f.no}">Flat ${f.no} — ${f.owner}</option>`).join('')}</select></div>
+        <div class="fg"><label>Amount (₹)</label><input type="number" id="pAmt" placeholder="0" inputmode="numeric" /></div>
+        <div class="fg"><label>Payment Mode</label>
+          <div class="radio-row">
+            <div class="r-btn on" id="pCash" onclick="setMode('cash')">💵 Cash</div>
+            <div class="r-btn" id="pBank" onclick="setMode('bank')">🏦 Bank Transfer</div>
+          </div>
+        </div>
+        <div class="fg"><label>Remark (optional)</label><input type="text" id="pRmk" placeholder="e.g. partial payment, advance…" /></div>
+        <button class="btn btn-navy" onclick="addPay()">Save Payment</button>
+      </div></div>`;
+  } else {
+    c.innerHTML = `<div class="alert alert-warn">🔒 Login as Admin to add or delete payments</div>`;
+  }
+  const tb = document.getElementById('payTbody');
+  if (!db.payments.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No payments recorded yet</td></tr>'; return; }
+  tb.innerHTML = [...db.payments].reverse().map(p => {
+    const f = db.flats.find(x=>x.no===p.flat);
+    return `<tr>
+      <td style="white-space:nowrap;font-size:11px;color:var(--text3)">${fmtD(p.date)}</td>
+      <td class="td-flat">${p.flat}</td>
+      <td class="td-owner">${f?f.owner:p.owner}</td>
+      <td class="amt-in">₹${I(p.amount)}</td>
+      <td><span class="badge ${p.mode==='cash'?'b-cash':'b-bank'}">${p.mode==='cash'?'💵 CASH':'🏦 BANK'}</span></td>
+      <td style="font-size:11px;color:var(--text3);max-width:90px">${p.remark||'—'}</td>
+      <td>${isAdmin?`<button class="del-btn" onclick="delPay(${p.id})">✕</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+let payMode = 'cash';
+function setMode(m) {
+  payMode = m;
+  document.getElementById('pCash').classList.toggle('on', m==='cash');
+  document.getElementById('pBank').classList.toggle('on', m==='bank');
+}
+function addPay() {
+  const date=document.getElementById('pDate').value, flat=document.getElementById('pFlat').value;
+  const amt=parseFloat(document.getElementById('pAmt').value), rmk=document.getElementById('pRmk').value.trim();
+  if (!date||!flat||!amt||amt<=0) { alert('Please fill date, flat and amount'); return; }
+  const f = db.flats.find(x=>x.no===flat);
+  db.payments.push({id:db.nextPay++,date,flat,owner:f?f.owner:'',amount:amt,mode:payMode,remark:rmk});
+  save(); renderPay(); renderDash();
+  document.getElementById('pAmt').value=''; document.getElementById('pRmk').value='';
+}
+function delPay(id) { if (!confirm('Delete this payment?')) return; db.payments=db.payments.filter(p=>p.id!==id); save(); renderPay(); renderDash(); }
+
+// ══════════════════════════════════════════
+//  EXPENSES
+// ══════════════════════════════════════════
+const PRESET_CATS = ['GUARD','CLEANING','JHADU','AIRTEL','TREE CUTTING','ELECTRICIAN','PLUMBER','LIFT','WATER','OTHER'];
+
+function renderExp() {
+  const c = document.getElementById('expForm');
+  if (isAdmin) {
+    c.innerHTML = `<div class="card">
+      <div class="card-hd"><h2>Add Society Expense</h2></div>
+      <div class="card-bd">
+        <div class="fg"><label>Date</label><input type="date" id="eDate" value="${td()}" /></div>
+        <div class="fg"><label>Category</label>
+          <select id="eCat" onchange="catChange()">
+            ${PRESET_CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg" id="otherFG" style="display:none">
+          <label>Specify Category Name</label>
+          <input type="text" id="eCatOther" placeholder="e.g. PAINTING, PEST CONTROL, PUMP REPAIR…" />
+        </div>
+        <div class="fg"><label>Amount (₹)</label><input type="number" id="eAmt" placeholder="0" inputmode="numeric" /></div>
+        <div class="fg"><label>Note (optional)</label><input type="text" id="eNote" placeholder="Extra details…" /></div>
+        <button class="btn btn-navy" onclick="addExp()">Save Expense</button>
+      </div></div>`;
+  } else {
+    c.innerHTML = `<div class="alert alert-warn">🔒 Login as Admin to add or delete expenses</div>`;
+  }
+  const tb = document.getElementById('expTbody');
+  if (!db.expenses.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">No expenses recorded yet</td></tr>'; return; }
+  tb.innerHTML = [...db.expenses].reverse().map(e => `<tr>
+    <td style="white-space:nowrap;font-size:11px;color:var(--text3)">${fmtD(e.date)}</td>
+    <td><span class="badge b-exp">${e.category}</span></td>
+    <td class="amt-out">₹${I(e.amount)}</td>
+    <td style="font-size:11px;color:var(--text3)">${e.note||'—'}</td>
+    <td>${isAdmin?`<button class="del-btn" onclick="delExp(${e.id})">✕</button>`:''}</td>
+  </tr>`).join('');
+}
+
+function catChange() {
+  const sel = document.getElementById('eCat').value;
+  document.getElementById('otherFG').style.display = sel === 'OTHER' ? '' : 'none';
+  if (sel !== 'OTHER') { const el = document.getElementById('eCatOther'); if (el) el.value=''; }
+}
+function addExp() {
+  const date=document.getElementById('eDate').value;
+  let cat=document.getElementById('eCat').value;
+  if (cat==='OTHER') {
+    const oc = document.getElementById('eCatOther').value.trim().toUpperCase();
+    if (!oc) { alert('Please specify the category name'); return; }
+    cat = oc;
+  }
+  const amt=parseFloat(document.getElementById('eAmt').value), note=document.getElementById('eNote').value.trim();
+  if (!date||!amt||amt<=0) { alert('Please fill date and amount'); return; }
+  db.expenses.push({id:db.nextExp++,date,category:cat,amount:amt,note});
+  save(); renderExp(); renderDash();
+  document.getElementById('eAmt').value=''; document.getElementById('eNote').value='';
+}
+function delExp(id) { if (!confirm('Delete this expense?')) return; db.expenses=db.expenses.filter(e=>e.id!==id); save(); renderExp(); renderDash(); }
+
+// ══════════════════════════════════════════
+//  FLATS
+// ══════════════════════════════════════════
+function renderFlats() {
+  document.getElementById('flatNote').innerHTML = isAdmin
+    ? `<div class="alert alert-ok">✅ Admin Mode — You can edit details, transfer ownership & view history</div>`
+    : `<div class="alert alert-warn">🔒 Login as Admin to edit flats or transfer ownership</div>`;
+  let h = '';
+  db.flats.forEach(f => {
+    const m = monthly(f), b = balance(f), hasH = f.history && f.history.length > 0;
+    const chip = f.no==='OFFICE'?'OFF':f.no;
+    h += `<div class="flat-row" style="flex-wrap:wrap;gap:10px;align-items:flex-start">
+      <div class="f-left">
+        <div class="f-chip ${f.isOffice?'office':'flat'}">${chip}</div>
+        <div style="min-width:0">
+          <div class="f-num">Flat ${f.no}</div>
+          <div class="f-owner">${f.owner}</div>
+          <div class="f-meta">${f.sqft?I(f.sqft)+' sqft · ₹'+I(m)+'/mo':'⚠️ Area not set'}</div>
+          <div class="f-meta">Since: ${fmtD(f.since)}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+        <div class="btn-row">
+          ${isAdmin?`<button class="xfer-btn" onclick="openXfer('${f.no}')">🔄 Transfer</button>`:''}
+          ${isAdmin?`<button class="edit-btn" onclick="openEdit('${f.no}')">✏️ Edit</button>`:''}
+          ${hasH?`<button class="hist-btn" onclick="openHist('${f.no}')">📋 History</button>`:''}
+        </div>
+        <div class="f-bal ${b>0?'due':'adv'}" style="font-size:13px">${b>0?'Due −':'Adv +'} ₹${I(Math.abs(b))}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('flatsCard').innerHTML = h;
+}
+
+function openEdit(no) {
+  const f = db.flats.find(x=>x.no===no); if(!f) return;
+  document.getElementById('ef_no').value=no;
+  document.getElementById('ef_owner').value=f.owner;
+  document.getElementById('ef_sqft').value=f.sqft||'';
+  document.getElementById('editFlatOverlay').classList.add('open');
+}
+function saveEditFlat() {
+  const no=document.getElementById('ef_no').value;
+  const owner=document.getElementById('ef_owner').value.trim().toUpperCase();
+  const sqft=parseInt(document.getElementById('ef_sqft').value)||0;
+  if (!owner) { alert('Enter owner name'); return; }
+  const f=db.flats.find(x=>x.no===no); if(f){f.owner=owner;f.sqft=sqft;}
+  save(); closeOverlay('editFlatOverlay'); renderFlats(); renderDash();
+}
+
+// ── TRANSFER ──
+let settleVal = 'cleared';
+function setSettle(v) {
+  settleVal=v;
+  document.getElementById('xf_cleared').classList.toggle('on',v==='cleared');
+  document.getElementById('xf_pending').classList.toggle('on',v==='pending');
+}
+function openXfer(no) {
+  const f=db.flats.find(x=>x.no===no); if(!f) return;
+  document.getElementById('xf_no').value=no;
+  const b=balance(f);
+  document.getElementById('xf_oldInfo').innerHTML=`
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:6px">Current Owner</div>
+    <div style="font-size:16px;font-weight:900;color:var(--text)">${f.owner}</div>
+    <div style="font-size:12px;color:var(--text3);margin:3px 0 8px">Flat ${f.no} · Since ${fmtD(f.since)}</div>
+    <div style="font-size:13px;font-weight:800;color:${b>0?'var(--red)':'var(--green)'}">
+      ${b>0?'Outstanding Due: −':'Advance Balance: +'} ₹${I(Math.abs(b))}
+    </div>`;
+  document.getElementById('xf_newOwner').value='';
+  document.getElementById('xf_date').value=td();
+  setSettle('cleared');
+  document.getElementById('xferOverlay').classList.add('open');
+}
+function confirmXfer() {
+  const no=document.getElementById('xf_no').value;
+  const newOwner=document.getElementById('xf_newOwner').value.trim().toUpperCase();
+  const dt=document.getElementById('xf_date').value;
+  if (!newOwner) { alert('Enter new owner name'); return; }
+  if (!dt) { alert('Enter transfer date'); return; }
+  const f=db.flats.find(x=>x.no===no); if(!f) return;
+  if(!f.history) f.history=[];
+  f.history.push({owner:f.owner,since:f.since,until:dt,finalBalance:balance(f),settlement:settleVal});
+  f.owner=newOwner; f.since=dt;
+  save(); closeOverlay('xferOverlay'); renderFlats(); renderDash();
+  alert(`✅ Ownership transferred!\nFlat ${no} → ${newOwner}\nFrom ${fmtD(dt)}`);
+}
+
+// ── HISTORY ──
+function openHist(no) {
+  const f=db.flats.find(x=>x.no===no); if(!f||!f.history||!f.history.length) return;
+  document.getElementById('histTitle').textContent=`Flat ${no} — Ownership History`;
+  document.getElementById('histSub').textContent=`${f.history.length} previous owner(s)`;
+  let h=f.history.map(x=>`
+    <div class="hist-item ${x.settlement}">
+      <div class="hi-name">${x.owner}</div>
+      <div class="hi-dates">${fmtD(x.since)} → ${fmtD(x.until)}</div>
+      <div class="hi-row"><span class="hi-lbl">Final Balance</span>
+        <span class="hi-val" style="color:${x.finalBalance>0?'var(--red)':'var(--green)'}">
+          ${x.finalBalance>0?'Due −':'Adv +'} ₹${I(Math.abs(x.finalBalance))}
+        </span></div>
+      <div class="hi-row"><span class="hi-lbl">Settlement</span>
+        <span class="hi-val" style="color:${x.settlement==='cleared'?'var(--green)':'var(--red)'}">
+          ${x.settlement==='cleared'?'✅ Cleared':'⏳ Pending'}
+        </span></div>
+    </div>`).join('');
+  h+=`<div class="hist-item current">
+    <div class="hi-name">${f.owner} <span style="font-size:10px;color:var(--blue);font-weight:800">(CURRENT)</span></div>
+    <div class="hi-dates">From ${fmtD(f.since)} → Present</div>
+  </div>`;
+  document.getElementById('histContent').innerHTML=h;
+  document.getElementById('histOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════
+//  REPORT + EXCEL DOWNLOAD
+// ══════════════════════════════════════════
+function renderReport() {
+  const c = document.getElementById('reportSection');
+  const now = new Date();
+  const monthName = now.toLocaleString('en-IN',{month:'long',year:'numeric'});
+
+  if (!isAdmin) {
+    c.innerHTML = `
+      <div class="alert alert-warn" style="margin-bottom:16px">🔒 Admin login required to download reports</div>
+      <div class="card card-bd">
+        <p style="font-size:13px;color:var(--text3);line-height:1.6;text-align:center;padding:12px 0">
+          Login as admin to download monthly Excel reports with all society data — payments, expenses, flat balances and owner directory.
+        </p>
+      </div>`;
+    return;
+  }
+
+  // Summary for display
+  const totPaid = db.payments.reduce((s,p)=>s+p.amount,0);
+  const totExp = db.expenses.reduce((s,e)=>s+e.amount,0);
+  const surplus = totPaid - totExp;
+
+  c.innerHTML = `
+    <div class="alert alert-info" style="margin-bottom:4px">📊 Download a full Excel report with 4 sheets of data</div>
+    <p class="sh">Download Report</p>
+    <div class="card card-bd">
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;color:var(--text3);line-height:1.8">
+          The Excel file contains:<br>
+          <strong style="color:var(--text)">Sheet 1</strong> — Flat Balance Summary<br>
+          <strong style="color:var(--text)">Sheet 2</strong> — All Payments Received<br>
+          <strong style="color:var(--text)">Sheet 3</strong> — All Society Expenses<br>
+          <strong style="color:var(--text)">Sheet 4</strong> — Flat Owner Directory
+        </div>
+      </div>
+      <button class="dl-btn" onclick="downloadExcel()">
+        <span class="dl-icon">📥</span> Download Full Report (Excel)
+      </button>
+      <button class="dl-btn" style="background:#0e7c5a;margin-top:6px" onclick="downloadMonthExcel()">
+        <span class="dl-icon">📅</span> Download ${monthName} Report
+      </button>
+    </div>
+
+    <p class="sh">Quick Summary</p>
+    <div class="card">
+      ${db.flats.map(f => {
+        const b = balance(f), m = monthly(f), p = paid(f.no, f.since);
+        return `<div class="flat-row">
+          <div class="f-left">
+            <div class="f-chip ${f.isOffice?'office':'flat'}">${f.no==='OFFICE'?'OFF':f.no}</div>
+            <div>
+              <div class="f-num">Flat ${f.no}</div>
+              <div class="f-owner">${f.owner}</div>
+              <div class="f-meta">Monthly: ₹${I(m)} · Paid: ₹${I(p)}</div>
+            </div>
+          </div>
+          <div class="f-right">
+            <div class="f-bal ${b>0?'due':'adv'}">${b>0?'−':'+'}₹${I(Math.abs(b))}</div>
+            <div class="f-bal-tag ${b>0?'due':'adv'}">${b>0?'Due':'Advance'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function buildWorkbook(filterMonth) {
+  const wb = XLSX.utils.book_new();
+  const now = new Date();
+
+  // ── Sheet 1: Balance Summary ──
+  const s1 = [['THOLIA\'S APARTMENT — Balance Summary'],['Generated on: '+now.toLocaleDateString('en-IN')],[''],
+    ['Flat No','Owner','Area (SqFt)','Monthly Charge','Owner Since','Total Accrued','Total Paid','Balance','Status']];
+  db.flats.forEach(f => {
+    const m=monthly(f), a=accrued(f), p=paid(f.no,f.since), b=balance(f);
+    s1.push([f.no, f.owner, f.sqft||0, m, f.since, a, p, Math.abs(b), b>0?'DUE':'ADVANCE/CLEAR']);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(s1);
+  ws1['!cols']=[{wch:10},{wch:18},{wch:12},{wch:15},{wch:14},{wch:15},{wch:12},{wch:12},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Balance Summary');
+
+  // ── Sheet 2: Payments ──
+  let pays = db.payments;
+  if (filterMonth) pays = pays.filter(p => p.date.startsWith(filterMonth));
+  const s2 = [['THOLIA\'S APARTMENT — Payments Received'],[''],
+    ['Date','Flat No','Owner','Amount (₹)','Mode','Remark']];
+  [...pays].sort((a,b)=>a.date.localeCompare(b.date)).forEach(p => {
+    s2.push([p.date, p.flat, p.owner, p.amount, p.mode.toUpperCase(), p.remark||'']);
+  });
+  s2.push(['','','TOTAL',pays.reduce((s,p)=>s+p.amount,0),'','']);
+  const ws2 = XLSX.utils.aoa_to_sheet(s2);
+  ws2['!cols']=[{wch:12},{wch:9},{wch:18},{wch:14},{wch:10},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Payments');
+
+  // ── Sheet 3: Expenses ──
+  let exps = db.expenses;
+  if (filterMonth) exps = exps.filter(e => e.date.startsWith(filterMonth));
+  const s3 = [['THOLIA\'S APARTMENT — Society Expenses'],[''],
+    ['Date','Category','Amount (₹)','Note']];
+  [...exps].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e => {
+    s3.push([e.date, e.category, e.amount, e.note||'']);
+  });
+  s3.push(['','TOTAL',exps.reduce((s,e)=>s+e.amount,0),'']);
+  const ws3 = XLSX.utils.aoa_to_sheet(s3);
+  ws3['!cols']=[{wch:12},{wch:18},{wch:14},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Expenses');
+
+  // ── Sheet 4: Directory ──
+  const s4 = [['THOLIA\'S APARTMENT — Flat Owner Directory'],['Rate: ₹'+db.rate+' per sqft/month'],[''],
+    ['Flat No','Owner','Area (SqFt)','Monthly Charge','Owner Since','Previous Owners']];
+  db.flats.forEach(f => {
+    const prev = (f.history||[]).map(h=>h.owner+' ('+h.since+' to '+h.until+')').join('; ');
+    s4.push([f.no, f.owner, f.sqft||0, monthly(f), f.since, prev||'First Owner']);
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet(s4);
+  ws4['!cols']=[{wch:10},{wch:18},{wch:12},{wch:15},{wch:14},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, ws4, 'Owner Directory');
+
+  return wb;
+}
+
+function downloadExcel() {
+  const wb = buildWorkbook(null);
+  const now = new Date();
+  const fname = `Tholias_Apartment_Full_Report_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
+
+function downloadMonthExcel() {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const wb = buildWorkbook(ym);
+  const mname = now.toLocaleString('en-IN',{month:'long',year:'numeric'}).replace(' ','-');
+  XLSX.writeFile(wb, `Tholias_Apartment_${mname}.xlsx`);
+}
+
+// ══════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════
+function renderSettings() {
+  document.getElementById('rateCard').innerHTML = `
+    <div class="fg">
+      <label>Rate (₹ per Sq Ft per Month)</label>
+      <input type="number" id="rateIn" step="0.01" value="${db.rate}" ${!isAdmin?'disabled':''} inputmode="decimal" />
+    </div>
+    <p style="font-size:12px;color:var(--text3);line-height:1.7;margin-bottom:14px">
+      Monthly charge = Sq Ft × ₹${db.rate}<br>
+      Example: 2200 sqft → <strong style="color:var(--text)">₹${I(Math.round(2200*db.rate))}/month</strong><br>
+      Accrual starts from <strong style="color:var(--text)">1st January 2026</strong>
+    </p>
+    ${isAdmin?`<button class="btn btn-navy" onclick="saveRate()">Update Rate</button>`:
+    `<div class="alert alert-warn">🔒 Login as Admin to change rate</div>`}`;
+  const psh = document.getElementById('pwdSH');
+  psh.style.display = isAdmin ? '' : 'none';
+  document.getElementById('pwdCard').innerHTML = isAdmin ? `
+    <div class="fg"><label>New Password</label><input type="password" id="np" placeholder="Min 4 characters" /></div>
+    <div class="fg"><label>Confirm Password</label><input type="password" id="cp" placeholder="Repeat new password" /></div>
+    <button class="btn btn-navy" onclick="changePwd()">Change Password</button>` : '';
+}
+function saveRate() {
+  const r=parseFloat(document.getElementById('rateIn').value);
+  if (!r||r<=0) { alert('Enter valid rate'); return; }
+  db.rate=r; save(); alert('✅ Rate updated to ₹'+r+' per sqft/month');
+  renderSettings(); renderDash();
+}
+function changePwd() {
+  const np=document.getElementById('np').value, cp=document.getElementById('cp').value;
+  if (!np||np.length<4) { alert('Minimum 4 characters'); return; }
+  if (np!==cp) { alert('Passwords do not match'); return; }
+  db.pwd=np; save(); alert('✅ Password changed!');
+}
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function I(n) { return Math.round(n).toLocaleString('en-IN'); }
+function td() { return new Date().toISOString().split('T')[0]; }
+function fmtD(d) { if(!d) return '—'; const [y,m,day]=d.split('-'); return `${day}-${m}-${y.slice(2)}`; }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on backdrop tap
+['editFlatOverlay','xferOverlay','histOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) closeOverlay(id); });
+});
+
+renderDash();
+</script>
+</body>
+</html>
